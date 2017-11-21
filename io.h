@@ -47,32 +47,6 @@ void setupIO() {
   mqtt.setCallback(mqttCallback);
 }
 
-void formatLocation(char *p, long int lat, long int lon) {
-  ltoa(lat, p, 10);
-  p += strlen(p);
-  p[0] = ','; p++;
-
-  ltoa(lon, p, 10);
-  p += strlen(p); 
-
-  p[0] = 0;
-}
-
-void formatOrient(char *p, imu::Vector<3> data) {
-  ltoa((long int)(data.x() * 10000), p, 10); 
-  p += strlen(p);
-  p[0] = ',';
-  p++;
-  ltoa((long int)(data.y() * 10000), p, 10); 
-  p += strlen(p);
-  p[0] = ',';
-  p++;
-  ltoa((long int)(data.z() * 10000), p, 10); 
-  p += strlen(p);
-  p[0] = 0;  
-}
-
-
 bool reconnecting = false;
 uint16_t lastReconnectAttempt = 0;
 
@@ -99,11 +73,13 @@ boolean runIO() {
     }
     
     return false;
+
+return true;
 }
 
 void sendData(long int lat, long int lon) {
     char sendbuffer[30] = {0};
-    formatLocation(sendbuffer, lat, lon);
+    formatLocation(sendbuffer, lat, lon);   
     mqtt.publish(topicLocation, sendbuffer);
 }
 

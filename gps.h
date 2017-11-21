@@ -46,3 +46,15 @@ bool runGPS(long int* lat, long int* lon)
     return false;
   }
 }
+
+void formatLocation(char *p, long int lat, long int lon) {
+  ltoa(lat, p, 10);
+  p += strlen(p);
+  p[0] = ','; p++;
+
+  ltoa(lon, p, 10);
+  p += strlen(p);
+
+  p[0] = 0;
+}
+
