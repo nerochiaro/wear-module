@@ -1,16 +1,13 @@
 boolean startAudioPlayback = false;
-boolean cellNetworkReady = false;
 
 #include "fona.h"
 #include "gps.h"
 #include "audio.h"
 #include "orient.h"
-#include "io.h"
 
-uint16_t lastConnectionAttempt = 0;
-uint16_t lastSendOrient = 0;
-
-#define SEND_ORIENT_INTERVAL 3000
+uint16_t lastSend = 0;
+#define SEND_INTERVAL 3000
+#define BASE_API_URL "http://gm-console.herokuapp.com/set/"
 
 void setup() {
   //pinMode(5, OUTPUT);
@@ -18,38 +15,44 @@ void setup() {
   
   Serial.begin(115200);
   delay(1000);
-  
-  setupFONA();
-  setupIO();
-  setupGPS();
+  Serial.println("Starting");
+
+  setupModem();
+  goOnline(false);
+
   setupOrient();
+  setupGPS();
 }
 
+long int lat = 0;
+long int lon = 0;
 void loop() {
-  uint16_t now = millis();
-  if (now - lastConnectionAttempt > 500) {
-    lastConnectionAttempt = now;
-    runFONA();
+  if (runGPS(&lat, &lon)) {
+    Serial.println(F("\n--FIX--"));
   }
-  
-  if (runIO()) {
-    long int lat = 0;
-    long int lon = 0;
-    if (runGPS(&lat, &lon)) sendData(lat, lon);
-    
-    if (now - lastSendOrient > SEND_ORIENT_INTERVAL) {
-      lastSendOrient = now;    
-      sendData(runOrient());    
-    }
-  }
-  
 
-  // At the moment audio playback will stop all other functions of the board
-  // for the duration of playback.
-  if (startAudioPlayback) {
-    playAudio();
-    startAudioPlayback = false;
-    setupFONA();
+  uint16_t now = millis();
+  if (now - lastSend >= SEND_INTERVAL) {
+    lastSend = now;
+    
+    imu::Vector<3> o = runOrient();
+
+    char url[256] = BASE_API_URL;
+    char *at = url + strlen(url);
+    formatOrient(at, o);
+    at = url + strlen(url);
+    *at = ',';
+    at++;
+    formatLocation(at, lat, lon);
+
+    boolean play = false;
+    if (!sendData(url, &play)) {
+      goOnline(true);
+    }
+
+    if (play) {
+      playAudio();
+    }
   }
 }
 

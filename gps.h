@@ -30,7 +30,7 @@ void setupGPS()
   // configure the module
   ss.println(NMEA_OUTPUT_RMC);
   ss.println(FIX_EVERY_200_MS);
-  ss.println(NMEA_SEND_5_S);  
+  ss.println(NMEA_SEND_1_S);
 }
 
 bool runGPS(long int* lat, long int* lon)

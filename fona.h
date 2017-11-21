@@ -1,57 +1,82 @@
-//#define FONA_RX  9
-//#define FONA_TX  8
-//#define FONA_RI_INTERRUPT INT4
-//#define AT_DISABLE_RINGER "AT+CRSL=0"
-//#define AT_PICKUP_AFTER_1_RING "ATS0=1"
+#include "Adafruit_FONA.h"
 
-const char apn[]  = "gprs-service.com";
-const char user[] = "";
-const char pass[] = "";
+#define FONA_RX 9
+#define FONA_TX 8
+#define FONA_RST 4
+
+char replybuffer[255];
 
 #include <SoftwareSerial.h>
-SoftwareSerial SerialAT(8, 9); // RX, TX
+SoftwareSerial fonaSS = SoftwareSerial(FONA_TX, FONA_RX);
+SoftwareSerial *fonaSerial = &fonaSS;
 
-#define TINY_GSM_MODEM_SIM800
-#include <TinyGsmClient.h>
+Adafruit_FONA fona = Adafruit_FONA(FONA_RST);
 
-#define AT_DEBUG
-#ifdef AT_DEBUG
-  #include <StreamDebugger.h>
-  StreamDebugger debugger(SerialAT, Serial); 
-  TinyGsm modem(debugger);
-#else
-  TinyGsm modem(SerialAT);
-#endif
+boolean sendData(const char *url, boolean* play) {
+    uint16_t statuscode;
+    int16_t length;
 
-TinyGsmClient client(modem);
+    Serial.print("Sending URL:"); Serial.println(url);
+   
+    if (!fona.HTTP_GET_start(url, &statuscode, (uint16_t *)&length)) {
+      Serial.println("Failed!");
+      return;
+    }
 
-void setupFONA() {
-  SerialAT.begin(9600);
-
-  Serial.print(F("Modem:I:"));
-  modem.restart();
-  Serial.println(modem.getModemInfo());
-}
-
-boolean runFONA() {
-  uint8_t s = modem.getRegistrationStatus();
-  if (s != REG_OK_HOME && s != REG_OK_ROAMING) {
-    cellNetworkReady = false;
-    return false;
-  }
- 
-  if (!cellNetworkReady) {
-    Serial.println(F("GSM:ON"));
-    Serial.print(F("\n2G:I:"));
-    Serial.print(apn);
-    Serial.print(':');
-    if (!modem.gprsConnect(apn, user, pass)) {
-      Serial.println("E:");
+    Serial.print("HTTP status:"); Serial.println(statuscode);
+    if (statuscode != 200) {
+      fona.HTTP_GET_end();
       return false;
     }
-    cellNetworkReady = true;
-    Serial.println("OK");
-  }
-  return true;
+
+    char buf[64] = {0};
+    char *at = buf;
+    while (length > 0) {
+      while (fona.available()) {
+        char c = fona.read();
+        *at = c;
+        at++;
+        length--;
+        if (! length) break;
+      }
+    }
+    fona.HTTP_GET_end();
+
+    *play = (strcmp(buf, "PLAY") == 0);
+    
+    return true;
 }
+
+void setupModem() {
+  Serial.println(F("Initializing....(May take 3 seconds)"));
+  fona.setGPRSNetworkSettings(F("ac.vodafone.es"), F("vodafone"), F("vodafone"));
+  fonaSerial->begin(4800);
+  if (!fona.begin(*fonaSerial)) {
+    Serial.println(F("Couldn't find FONA"));
+    while (1);
+  }
+  Serial.println(F("FONA is OK"));
+
+//  fona.setGPRSNetworkSettings(F("ac.vodafone.es"), F("vodafone"), F("vodafone"));
+}
+
+boolean goOnline(bool reconnecting) {
+  while(true) {
+    uint8_t n = fona.getNetworkStatus();
+    Serial.print("Status:"); Serial.println(n);
+    if (n == 1 || n == 5) break;
+    delay(1000);
+  }
+
+  if (reconnecting) fona.enableGPRS(false);
+  while (true) {
+    delay(2000);
+    if (!fona.enableGPRS(true)) {
+      Serial.println("Failed to go on GPRS network");
+    } else break;
+  }
+ 
+   Serial.println("Online GPRS");
+}
+
 
