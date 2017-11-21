@@ -33,6 +33,8 @@ void beep(int note, int duration)
 // This blocks every other function of the device while audio is playing
 void playAudio()
 {
+  digitalWrite(5, HIGH);
+
   int notes[MELODY_LEN] = {a,a,a,f,cH,a,f,cH,a,eH,eH,eH,fH,cH,gS,f,cH,a,aH,a,a,aH,gSH,gH,fSH,fH,fSH,aS,dSH,dH,cSH,cH,b,cH};
   int durations[MELODY_LEN] = {500,500,500,350,150,500,350,150,650,500,500,500,350,150,500,350,150,650,500,300,150,500,325,175,125,125,250,250,500,325,175,125,125,250};
 
@@ -40,5 +42,7 @@ void playAudio()
   for (uint8_t i = 0; i < MELODY_LEN; i++) {
     beep(notes[i], durations[1]);
   }
+
+  digitalWrite(5, LOW);
 }
 

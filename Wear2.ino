@@ -7,13 +7,14 @@ boolean startAudioPlayback = false;
 
 uint16_t lastSend = 0;
 #define SEND_INTERVAL 3000
+#define SPEED 19200
 #define BASE_API_URL "http://gm-console.herokuapp.com/set/"
 
 void setup() {
-  //pinMode(5, OUTPUT);
-  //digitalWrite(5, LOW);
+  pinMode(5, OUTPUT);
+  digitalWrite(5, LOW);
   
-  Serial.begin(115200);
+  Serial.begin(SPEED);
   delay(1000);
   Serial.println("Starting");
 
